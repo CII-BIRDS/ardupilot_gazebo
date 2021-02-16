@@ -40,9 +40,16 @@ This project uses many different packages to be successful:
         mkdir -p ~/catkin_ws/src
         cd ~/catkin_ws
         catkin init
+        catkin build
+        ls
+        ```
+        * Check to see if you see many additional directories, if so move on. 
+    * Source to bashrc
+        ```bash
+        echo 'source ~/catkin_ws/devel/setup.bash' >> ~/.bashrc
+        source ~/.bashrc
         ```
         <br/>
-
 ---
 ## Gazebo Installation
 

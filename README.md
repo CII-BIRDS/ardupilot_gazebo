@@ -1,135 +1,220 @@
-# Ardupilot Gazebo plugin 
 
-## Requirements :
-Native Ubuntu able to run full 3D graphics.
-Gazebo version 8.x or greater
-The dev branch will works on gazebo >= 8.x  
-For Gazebo 7 use branch gazebo7
+# BIRDS V2 Virtual Environment
 
-## Disclamer : 
-This is a playground until I get some time to push the correct patch to gazebo master (I got hard time to work with mercurial..)!  
-So you can expect things to not be up-to-date.  
-This assume that your are using Ubuntu 16.04 or Ubuntu 18.04
+## System
+* Ubuntu 20.04
 
-## Usage :
-I assume you already have Gazebo installed with ROS (or without).  
-If you don't have it yet, install ROS with `sudo apt install ros-melodic-desktop-full`
-(follow instruction here http://wiki.ros.org/melodic/Installation/Ubuntu).  
-Due to a bug in current gazebo release from ROS, please update gazebo with OSRF version from http://gazebosim.org/tutorials?tut=install_ubuntu
+---
 
-libgazeboX-dev must be installed, X be your gazebo version (9 on ROS melodic).
 
-For Gazebo X
-````
-sudo apt-get install libgazeboX-dev
-````
+## Overview
+This project uses many different packages to be successful:
+* ROS Noetic
+* Gazebo
+* PX4
+* Ardupilot
+* MAVProxy
+* DroneKit
+<br/>
 
-````
-git clone https://github.com/khancyr/ardupilot_gazebo
-cd ardupilot_gazebo
-mkdir build
-cd build
-cmake ..
-make -j4
-sudo make install
-````
+---
+## ROS Installation and Catkin Setup
+1. ROS
+    * Add permissions to access serial port and remove modemmanager
+        ```bash
+        sudo usermod -a -G dialout $USER
+        sudo apt-get remove modemmanager -y
+        ```
+    * Download [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu).
 
-````
-echo 'source /usr/share/gazebo/setup.sh' >> ~/.bashrc
-````
+        * Use Desktop-Full Install
 
-Set Path of Gazebo Models (Adapt the path to where to clone the repo)
-````
-echo 'export GAZEBO_MODEL_PATH=~/ardupilot_gazebo/models' >> ~/.bashrc
-````
+2. Catkin
+    * Install
+        ```bash
+        sudo apt-get install python3-wstool python3-rosinstall-generator python3-catkin-lint python3-pip python3-catkin-tools
+        pip3 install osrf-pycommon
+        ```
+    * Initialize
+        ```bash
+        mkdir -p ~/catkin_ws/src
+        cd ~/catkin_ws
+        catkin init
+        ```
+        <br/>
 
-Set Path of Gazebo Worlds (Adapt the path to where to clone the repo)
-````
-echo 'export GAZEBO_RESOURCE_PATH=~/ardupilot_gazebo/worlds:${GAZEBO_RESOURCE_PATH}' >> ~/.bashrc
-````
+---
+## Gazebo Installation
 
-````
-source ~/.bashrc
-````
+* Preconditions
 
-DONE !
+    ```bash
+    sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+    wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+    sudo apt update
+    ```
 
-Now launch a world file with a copter/rover/plane and ardupilot plugin, and it should work! 
-(I will try to add some world file and model later)
+* Use the one-liner installation to easily install Gazebo.
+    1. Install
+    ```bash
+    curl -sSL http://get.gazebosim.org | sh
+    ```
+    2. Test
+    ```bash
+    gazebo --verbose
+    ```
+    This should open an empty world. If it does, close the world and continue.
+<br/>
 
-## HELP
+---
+## PX4 Firmware
+Install PX4 Firware
+```bash
+    sudo apt install git
+    mkdir px4
+    cd px4
+    git clone https://github.com/PX4/Firmware.git
+```
+<br/>
 
-How to Launch :  
-Launch Ardupilot Software In the Loop Simulation for each vehicle.
-On new terminal, launch Gazebo with basic demo world.
+---
+## Making Drone
+Before building the drone, add GSTREAMER packages
+```bash
+    sudo apt install libgstreamer1.0-dev
+    sudo apt install gstreamer1.0-plugins-good
+    sudo apt install gstreamer1.0-plugins-bad
+    sudo apt install gstreamer1.0-plugins-ugly
+```
+Use the following code to build the SITL Drone.
+```bash
+    cd ~/px4/Firmware
+    make px4_sitl gazebo_solo
+```
 
-#####ROVER (no model provided for now)
+If you fail making the drone, the output should tell you packages that you are missing. Install packages using 'pip3', and try again as below:
 
-On 1st Terminal (Launch Ardupilot SITL)
-````
-sim_vehicle.py -v APMrover2 -f gazebo-rover --map --console
-````
+```bash
+    make clean
+    make px4_sitl gazebo_solo
+```
+<br/>
 
-On 2nd Terminal (Launch Gazebo with demo Rover model)
-````
-gazebo --verbose worlds/ (Please Add if there is one.)
-````
+---
+## ArduPilot Installation
 
-##### COPTER
+* Installation
+    ```bash
+    git clone https://github.com/ArduPilot/ardupilot.git
+    cd ardupilot
+    git submodule update --init --recursive
+    ```
+* Dependencies and Reload Profile
+    ```bash
+    cd ardupilot
+    Tools/envrionment_install/install-prereqs-ubuntu.sh -y
+    . ~/.profile
+    ```
+* Checkout Latest Copter Build
+    ```bash
+    git checkout Copter-4.0.4
+    git submodule update --init --recursive
+    ```
+* Run SITL to set Parameters
+    ```bash
+    git checkout Copter-4.0.4
+    git submodule update --init --recursive
+    ```
 
-On 1st Terminal (Launch Ardupilot SITL)
-````
-sim_vehicle.py -v ArduCopter -f gazebo-iris --map --console
-````
+* Install and Build ArduPilot Gazebo
+    ```bash
+    git clone https://github.com/donnybadamo/ardupilot_gazebo
+    cd ardupilot_gazebo
+    mkdir build
+    cd build
+    cmake ..
+    make -j4
+    sudo make install
+    ```
 
-On 2nd Terminal (Launch Gazebo with demo 3DR Iris model)
-````
-gazebo --verbose worlds/iris_arducopter_runway.world
-````
+* Set Path 
 
-##### PLANE
+    ```bash
+    echo 'source /usr/share/gazebo/setup.sh' >> ~/.bashrc
+    echo 'export GAZEBO_MODEL_PATH=~/ardupilot_gazebo/models' >> ~/.bashrc
+    echo 'export GAZEBO_RESOURCE_PATH=~/ardupilot_gazebo/worlds:${GAZEBO_RESOURCE_PATH}' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+    <br/>
+----
+## MAVProxy Installation
 
-On 1st Terminal (Launch Ardupilot SITL)
-````
-sim_vehicle.py -v ArduPlane -f gazebo-zephyr --map --console
-````
+* Use the below code to install MAVProxy 
+    ```bash
+    sudo apt-get install python3-dev python3-opencv python3-wxgtk4.0 python3-pip python3-matplotlib python3-lxml python3-pygame
+    pip3 install PyYAML mavproxy --user
+    echo "export PATH=$PATH:$HOME/.local/bin" >> ~/.bashrc
+    ```
+* If issues are found, please go [here](https://ardupilot.org/mavproxy/docs/getting_started/download_and_installation.html#linux)
 
-On 2nd Terminal (Launch Gazebo with demo Zephyr flying wing model)
-````
-gazebo --verbose worlds/zephyr_ardupilot_demo.world
-````
+Set Path
+    ```bash
+    echo "export PATH=$PATH:$Home
+    ```
+    <br/>
+---
+## Testing Simulator
+You will need two windows for this:
 
-In addition, you can use any GCS of Ardupilot locally or remotely (will require connection setup).
-If MAVProxy Developer GCS is uncomportable. Omit --map --console arguments out of SITL launch and use APMPlanner 2 or QGroundControl instead.
-Local connection with APMPlanner2/QGroundControl is automatic, and recommended.
+1. In window one, start Gazebo with the bridge Gazebo world
+    ```bash
+    gazebo --verbose ~/ardupilot_gazebo/worlds/bridge.world
+    ```
 
-## Troubleshooting
+2. In window two, start SITL with ArduCopter
+    ```bash
+    cd ~/ardupilot/ArduCopter
+    sim_vehicle.py -v ArduCopter -f gazebo-iris --console
+    ```
+    <br/>
+--- 
 
-### Missing libArduPilotPlugin.so... etc 
+## DroneKit Installation
 
-In case you see this message when you launch gazebo with demo worlds, check you have no error after sudo make install.  
-If no error use "ls" on the install path given to see if the plugin is really here.  
-If this is correct, check with `cat /usr/share/gazebo/setup.sh` the variable `GAZEBO_PLUGIN_PATH`. It should be the same as the install path. If not use `cp` to copy the lib to right path. 
+```bash
+sudo -H pip install dronekit
+git clone https://github.com/dronedojo/droneProgrammingCourse
 
-For Example
+```
 
-````
-sudo cp -a /usr/lib/x86_64-linux-gnu/gazebo-7.0/plugins/ /usr/lib/x86_64-linux-gnu/gazebo-7/
-````
+## Test DroneKit
 
-path mismatch is confirmed as ROS's glitch. It will be fixed.
+1. In window one, start Gazebo with the bridge Gazebo world
+    ```bash
+    gazebo --verbose ~/ardupilot_gazebo/worlds/bridge.world
+    ```
 
-### Future(not activated yet)
-To use Gazebo gps, you must offset the heading of +90° as gazebo gps is NWU and ardupilot is NED 
-(I don't use GPS altitude for now)  
-example : for SITL default location
-````
-    <spherical_coordinates>
-      <surface_model>EARTH_WGS84</surface_model>
-      <latitude_deg>-35.363261</latitude_deg>
-      <longitude_deg>149.165230</longitude_deg>
-      <elevation>584</elevation>
-      <heading_deg>87</heading_deg>
-    </spherical_coordinates>
-````
-Rangefinder
+2. In window two, start SITL with ArduCopter
+    ```bash
+    cd ~/ardupilot/ArduCopter
+    sim_vehicle.py -v ArduCopter -f gazebo-iris --console
+    ```
+3. In window three, start the DroneKit auto mission script
+    ```bash
+    cd droneProgrammingCourse/dk/
+    Python auto_mission.py --connect 127.0.0.1:14550
+    ```
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+
+---
+## Sources
+ * https://ardupilot.org/dev/docs/sitl-simulator-software-in-the-loop.html
+
+ * https://github.com/Intelligent-Quads/iq_tutorials/blob/master/docs/Installing_Ardupilot_20_04.md
+
